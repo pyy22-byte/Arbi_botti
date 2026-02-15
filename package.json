@@ -1,24 +1,27 @@
 {
   "name": "arbi_botti",
   "version": "1.0.0",
-  "description": "Discord bot scaffold for sports betting arbitrage monitoring.",
-  "type": "module",
+  "description": "",
   "main": "index.js",
   "scripts": {
-    "start": "node index.js",
-    "check": "node --check index.js && node --check bot.js && node --check matcher.js && node --check arbCalculator.js && node --check scrapers/paf.js && node --check scrapers/veikkaus.js"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node index.js"
   },
-  "keywords": [
-    "discord",
-    "arbitrage",
-    "sports-betting",
-    "playwright"
-  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/pyy22-byte/Arbi_botti.git"
+  },
+  "keywords": [],
   "author": "",
   "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/pyy22-byte/Arbi_botti/issues"
+  },
+  "homepage": "https://github.com/pyy22-byte/Arbi_botti#readme",
+  "type": "module",
   "dependencies": {
-    "discord.js": "^14.18.0",
-    "dotenv": "^16.4.5",
-    "playwright": "^1.51.0"
+    "discord.js": "^14.25.1",
+    "dotenv": "^17.3.1",
+    "playwright": "^1.58.2"
   }
 }

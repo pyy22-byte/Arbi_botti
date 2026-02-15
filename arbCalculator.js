@@ -1,14 +1,41 @@
-// Arbitrage calculator module.
-// Responsible for checking whether matched odds form risk-free betting opportunities.
+export function calculateArbitrage(combinedEvent) {
+  const bestSelections = combinedEvent.selections.map((selection) => {
+    const pafOdds = selection.paf.odds;
+    const veikkausOdds = selection.veikkaus.odds;
 
-export function calculateArbitrage(matchedEvents) {
-  // TODO: Implement arbitrage math.
-  // Typical approach:
-  // - For each outcome set, calculate implied probability sum.
-  // - If sum < 1.0, opportunity exists.
-  // - Later: add stake distribution and expected profit calculations.
+    if (pafOdds >= veikkausOdds) {
+      return {
+        key: selection.key,
+        name: selection.paf.name,
+        source: 'paf',
+        odds: pafOdds,
+      };
+    }
 
-  // Expected output shape (example):
-  // [{ eventId: '...', impliedSum: 0.97, estimatedProfitPct: 3.0 }]
-  return [];
+    return {
+      key: selection.key,
+      name: selection.veikkaus.name,
+      source: 'veikkaus',
+      odds: veikkausOdds,
+    };
+  });
+
+  if (bestSelections.length < 2) return null;
+
+  const reciprocalSum = bestSelections.reduce((sum, selection) => sum + 1 / selection.odds, 0);
+  const isArbitrage = reciprocalSum < 1;
+  if (!isArbitrage) return null;
+
+  const stakes = bestSelections.map((selection) => ({
+    ...selection,
+    stakeRatio: (1 / selection.odds) / reciprocalSum,
+  }));
+
+  return {
+    ...combinedEvent,
+    bestSelections,
+    reciprocalSum,
+    profit: 1 - reciprocalSum,
+    stakePlan: stakes,
+  };
 }
