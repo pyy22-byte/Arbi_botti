@@ -1,0 +1,24 @@
+{
+  "name": "arbi_botti",
+  "version": "1.0.0",
+  "description": "Discord bot scaffold for sports betting arbitrage monitoring.",
+  "type": "module",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "check": "node --check index.js && node --check bot.js && node --check matcher.js && node --check arbCalculator.js && node --check scrapers/paf.js && node --check scrapers/veikkaus.js"
+  },
+  "keywords": [
+    "discord",
+    "arbitrage",
+    "sports-betting",
+    "playwright"
+  ],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "discord.js": "^14.18.0",
+    "dotenv": "^16.4.5",
+    "playwright": "^1.51.0"
+  }
+}
