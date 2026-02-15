@@ -15,56 +15,6 @@ function normalizeTeamName(name = '') {
     .join(' ');
 }
 
-function normalizeSelectionName(name = '') {
-  const normalized = normalizeTeamName(name);
-  if (['1', 'home', 'kotivoitto'].includes(normalized)) return 'home';
-  if (['x', 'draw', 'tasapeli'].includes(normalized)) return 'draw';
-  if (['2', 'away', 'vierasvoitto'].includes(normalized)) return 'away';
-  if (/over|yli/.test(normalized)) return 'over';
-  if (/under|alle/.test(normalized)) return 'under';
-  return normalized;
-}
-
-function mapSelections(event) {
-  const map = new Map();
-  for (const selection of event.selections || []) {
-    map.set(normalizeSelectionName(selection.name), selection);
-  }
-  return map;
-}
-
-function buildCombinedEvent(pafEvent, veiEvent) {
-  const pafMap = mapSelections(pafEvent);
-  const veiMap = mapSelections(veiEvent);
-  const sharedKeys = [...pafMap.keys()].filter((key) => veiMap.has(key));
-  if (sharedKeys.length < 2) return null;
-
-  return {
-    id: `${pafEvent.teams.join('-')}|${pafEvent.startTime}|${pafEvent.marketType}`,
-    sport: pafEvent.sport,
-    league: pafEvent.league,
-    startTime: pafEvent.startTime,
-    teams: pafEvent.teams,
-    marketType: pafEvent.marketType,
-    selections: sharedKeys.map((key) => ({
-      key,
-      paf: pafMap.get(key),
-      veikkaus: veiMap.get(key),
-    })),
-    sources: {
-      paf: { url: pafEvent.url || 'https://www.paf.fi/sports' },
-      veikkaus: { url: veiEvent.url || 'https://www.veikkaus.fi/fi/vedonlyonti' },
-    },
-  };
-}
-
-function withinTenMinutes(aIso, bIso) {
-  const a = new Date(aIso).getTime();
-  const b = new Date(bIso).getTime();
-  if (!Number.isFinite(a) || !Number.isFinite(b)) return false;
-  return Math.abs(a - b) <= 10 * 60 * 1000;
-}
-
 function levenshtein(a, b) {
   if (a === b) return 0;
   if (!a.length) return b.length;
@@ -94,27 +44,32 @@ function similarity(a, b) {
   return 1 - distance / maxLen;
 }
 
-function matchEventsDemo(pafEvents, veikkausEvents) {
-  const byKey = new Map();
-  for (const event of veikkausEvents) {
-    const key = `${(event.teams || []).map(normalizeTeamName).sort().join(' vs ')}|${event.startTime}|${event.marketType}`;
-    byKey.set(key, event);
-  }
-
-  const matched = [];
-  for (const pafEvent of pafEvents) {
-    const key = `${(pafEvent.teams || []).map(normalizeTeamName).sort().join(' vs ')}|${pafEvent.startTime}|${pafEvent.marketType}`;
-    const veiEvent = byKey.get(key);
-    if (!veiEvent) continue;
-
-    const combined = buildCombinedEvent(pafEvent, veiEvent);
-    if (combined) matched.push(combined);
-  }
-
-  return matched;
+function withinTenMinutes(aIso, bIso) {
+  const a = new Date(aIso).getTime();
+  const b = new Date(bIso).getTime();
+  if (!Number.isFinite(a) || !Number.isFinite(b)) return false;
+  return Math.abs(a - b) <= 10 * 60 * 1000;
 }
 
-function matchEventsLive(pafEvents, veikkausEvents) {
+function normalizeSelectionName(name = '') {
+  const normalized = normalizeTeamName(name);
+  if (['1', 'home', 'kotivoitto'].includes(normalized)) return 'home';
+  if (['x', 'draw', 'tasapeli'].includes(normalized)) return 'draw';
+  if (['2', 'away', 'vierasvoitto'].includes(normalized)) return 'away';
+  if (/over|yli/.test(normalized)) return 'over';
+  if (/under|alle/.test(normalized)) return 'under';
+  return normalized;
+}
+
+function mapSelections(event) {
+  const map = new Map();
+  for (const selection of event.selections || []) {
+    map.set(normalizeSelectionName(selection.name), selection);
+  }
+  return map;
+}
+
+export function matchEvents(pafEvents, veikkausEvents) {
   const matched = [];
 
   for (const pafEvent of pafEvents) {
@@ -129,20 +84,31 @@ function matchEventsLive(pafEvents, veikkausEvents) {
       const veiTeams = (veiEvent.teams || []).map(normalizeTeamName).sort().join(' vs ');
       if (similarity(pafTeams, veiTeams) < 0.75) continue;
 
-      const combined = buildCombinedEvent(pafEvent, veiEvent);
-      if (combined) {
-        matched.push(combined);
-        break;
-      }
+      const pafMap = mapSelections(pafEvent);
+      const veiMap = mapSelections(veiEvent);
+      const sharedKeys = [...pafMap.keys()].filter((key) => veiMap.has(key));
+      if (sharedKeys.length < 2) continue;
+
+      matched.push({
+        id: `${pafEvent.teams.join('-')}|${pafEvent.startTime}|${pafEvent.marketType}`,
+        sport: pafEvent.sport,
+        league: pafEvent.league,
+        startTime: pafEvent.startTime,
+        teams: pafEvent.teams,
+        marketType: pafEvent.marketType,
+        selections: sharedKeys.map((key) => ({
+          key,
+          paf: pafMap.get(key),
+          veikkaus: veiMap.get(key),
+        })),
+        sources: {
+          paf: { url: pafEvent.url },
+          veikkaus: { url: veiEvent.url },
+        },
+      });
+      break;
     }
   }
 
   return matched;
-}
-
-export function matchEvents(pafEvents, veikkausEvents, options = {}) {
-  if (options.demoMode) {
-    return matchEventsDemo(pafEvents, veikkausEvents);
-  }
-  return matchEventsLive(pafEvents, veikkausEvents);
 }

@@ -1,26 +1,58 @@
+import 'dotenv/config';
+import { getOdds as getPafOdds } from './scrapers/paf.js';
 import { getOdds as getVeikkausOdds } from './scrapers/veikkaus.js';
+import { matchEvents } from './matcher.js';
+import { calculateArbitrage } from './arbCalculator.js';
+import { initBot, sendArbitrageNotification } from './bot.js';
 
-const DEMO_MODE = process.env.DEMO_MODE === '1';
+const SCAN_INTERVAL_MS = 60 * 1000;
 
-async function runVeikkausFetchOnce() {
-  const events = await getVeikkausOdds();
-  console.log(`Veikkaus events: ${events.length}`);
-  if (events[0]) {
-    console.log(JSON.stringify(events[0], null, 2));
+async function scanOnce() {
+  let pafEvents = [];
+  let veikkausEvents = [];
+
+  try {
+    pafEvents = await getPafOdds();
+  } catch (error) {
+    console.error('[paf] scrape failed:', error.message);
+  }
+
+  try {
+    veikkausEvents = await getVeikkausOdds();
+  } catch (error) {
+    console.error('[veikkaus] scrape failed:', error.message);
+  }
+
+  const matched = matchEvents(pafEvents, veikkausEvents);
+
+  for (const event of matched) {
+    const opportunity = calculateArbitrage(event);
+    if (!opportunity) continue;
+
+    try {
+      const sent = await sendArbitrageNotification(opportunity);
+      if (sent) {
+        console.log(
+          `[arb] Sent alert for ${opportunity.teams.join(' vs ')} (${(opportunity.profit * 100).toFixed(2)}%)`,
+        );
+      }
+    } catch (error) {
+      console.error('[discord] failed to send notification:', error.message);
+    }
   }
 }
 
 async function main() {
-  if (DEMO_MODE) {
-    console.log('DEMO_MODE=1 is set, but phase 1 only fetches Veikkaus odds and prints to console.');
-  }
+  await initBot();
+  console.log('Discord bot connected. Starting arbitrage scanner...');
 
-  try {
-    await runVeikkausFetchOnce();
-  } catch (error) {
-    console.error('[veikkaus] fetch failed:', error.message);
-    process.exitCode = 1;
-  }
+  await scanOnce();
+  setInterval(async () => {
+    await scanOnce();
+  }, SCAN_INTERVAL_MS);
 }
 
-main();
+main().catch((error) => {
+  console.error('Fatal startup error:', error);
+  process.exit(1);
+});
