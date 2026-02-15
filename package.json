@@ -1,0 +1,27 @@
+{
+  "name": "arbi_botti",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node index.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/pyy22-byte/Arbi_botti.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/pyy22-byte/Arbi_botti/issues"
+  },
+  "homepage": "https://github.com/pyy22-byte/Arbi_botti#readme",
+  "type": "module",
+  "dependencies": {
+    "discord.js": "^14.25.1",
+    "dotenv": "^17.3.1",
+    "playwright": "^1.58.2"
+  }
+}
